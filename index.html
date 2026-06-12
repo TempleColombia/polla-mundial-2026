@@ -1229,9 +1229,17 @@ function saveAll(){
 // EXPORTAR HTML
 // ============================================================
 function exportHTML(){
+  // Cerrar el modal ANTES de capturar el DOM para que no quede abierto en el export
+  document.getElementById('admin-overlay').classList.remove('open');
+
   const real=getRealScores();
   const realX=getRealExtras();
   let src = document.documentElement.outerHTML;
+
+  // Limpiar cualquier estado de modal abierto que haya quedado en el HTML capturado
+  src = src.replace(/class="overlay open"/g, 'class="overlay"');
+  src = src.replace(/class="overlay  open"/g, 'class="overlay"');
+
   // Embed updated scores and extras into BASE_DATA
   const updatedData = JSON.parse(JSON.stringify(BASE_DATA));
   updatedData.real_scores = real;
