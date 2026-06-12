@@ -1313,42 +1313,35 @@ function saveAll(){
 // EXPORTAR HTML
 // ============================================================
 function exportHTML(){
-  // Cerrar y ocultar el modal ANTES de capturar el DOM
-  const overlay = document.getElementById('admin-overlay');
-  overlay.classList.remove('open');
-  overlay.style.display = 'none';
-
+  // Usar el HTML original limpio (capturado al inicio antes de cualquier manipulación del DOM)
+  // Esto evita que estados del modal u otros elementos dinámicos contaminen el export
   const real=getRealScores();
   const realX=getRealExtras();
-  let src = document.documentElement.outerHTML;
+  const gruposExp=getGruposData();
+  const golsExp=getGoleadoresData();
 
-  // Restaurar display del overlay en el DOM vivo (no afecta el export)
-  overlay.style.display = '';
+  // Partir del HTML original limpio
+  let out = _ORIGINAL_HTML_SOURCE;
 
-  // Limpiar CUALQUIER estado del modal en el string exportado
-  src = src.replace(/class="overlay open"/g, 'class="overlay"');
-  src = src.replace(/class="overlay  open"/g, 'class="overlay"');
-  // Eliminar el overlay completamente del HTML exportado — los receptores no son admins
-  src = src.replace(/<div class="overlay"[\s\S]*?<\/div>\s*<!-- ADMIN MODAL end -->/, '');
-  // Fallback: forzar display:none en el overlay exportado
-  src = src.replace('id="admin-overlay"', 'id="admin-overlay" style="display:none!important"');
-
-  // Embed updated scores and extras into BASE_DATA
+  // Embeber datos actualizados en BASE_DATA
   const updatedData = JSON.parse(JSON.stringify(BASE_DATA));
   updatedData.real_scores = real;
   updatedData.real_extras = realX;
   const newDataStr = 'const BASE_DATA = ' + JSON.stringify(updatedData) + ';';
-  src = src.replace(/const BASE_DATA = \{[\s\S]*?\};/, newDataStr);
-  // Pre-seed localStorage in exported version so recipients see updated data
-  const gruposExp = getGruposData();
-  const golsExp = getGoleadoresData();
+  out = out.replace(/const BASE_DATA = \{[\s\S]*?\};/, newDataStr);
+
+  // También embeber _ORIGINAL_HTML_SOURCE actualizado para que el próximo export funcione
+  const newOrigSrc = 'const _ORIGINAL_HTML_SOURCE = ' + JSON.stringify(out) + ';';
+  out = out.replace(/const _ORIGINAL_HTML_SOURCE = .*?;/, newOrigSrc);
+
+  // Seed localStorage para que datos de grupos/goleadores también lleguen
   const seedScript = `<script>
     try{localStorage.setItem('${STORAGE_KEY}',${JSON.stringify(JSON.stringify(real))});}catch(e){}
     try{localStorage.setItem('polla_extras_2026',${JSON.stringify(JSON.stringify(realX))});}catch(e){}
     try{localStorage.setItem('polla_grupos_2026',${JSON.stringify(JSON.stringify(gruposExp))});}catch(e){}
     try{localStorage.setItem('polla_goleadores_2026',${JSON.stringify(JSON.stringify(golsExp))});}catch(e){}
   <\/script>`;
-  src = src.replace('</body>', seedScript + '</body>');
+  out = out.replace('</body>', seedScript + '</body>');
   const blob = new Blob([src], {type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1749,6 +1742,8 @@ function saveGrupoPartido(id, eq1, eq2, grupo){
 // ============================================================
 // INIT
 // ============================================================
+// Store the original clean HTML source for export (before any DOM manipulation)
+const _ORIGINAL_HTML_SOURCE = document.documentElement.outerHTML;
 renderPosiciones();
 </script>
 </body>
