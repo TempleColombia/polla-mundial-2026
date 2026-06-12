@@ -335,6 +335,7 @@ canvas{max-height:400px}
     <!-- Sub-tabs -->
     <div style="display:flex;gap:0;background:#fff;border-radius:12px 12px 0 0;border-bottom:2px solid var(--borde);margin-bottom:12px;box-shadow:0 1px 5px rgba(0,0,0,.08);overflow:hidden">
       <div class="atab active" id="stab-marcadores" onclick="showSubTab('marcadores')" style="padding:11px 20px;font-size:13px">⚽ Marcadores</div>
+      <div class="atab" id="stab-equipos" onclick="showSubTab('equipos')" style="padding:11px 20px;font-size:13px">🏳️ Equipos</div>
       <div class="atab" id="stab-extras" onclick="showSubTab('extras')" style="padding:11px 20px;font-size:13px">🎯 Extras</div>
       <div class="atab" id="stab-colombia" onclick="showSubTab('colombia')" style="padding:11px 20px;font-size:13px">🇨🇴 Colombia</div>
     </div>
@@ -359,6 +360,25 @@ canvas{max-height:400px}
         <div class="li"><div class="ld" style="background:#F3F4F6"></div>Pendiente</div>
       </div>
       <div class="tbl-wrap"><table class="ttbl" id="trans-tbl"></table></div>
+    </div>
+
+    <!-- EQUIPOS SUB-TAB -->
+    <div id="stab-equipos-content" style="display:none">
+      <div style="background:white;border-radius:12px;padding:10px 14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.08);font-size:12px;color:var(--gris)">
+        Muestra los equipos que cada participante predijo para cada posición del partido.
+        🟢 Ambos equipos correctos · 🟡 Un equipo correcto · ⬜ Pendiente
+      </div>
+      <div class="filt-row" style="margin-bottom:10px">
+        <strong style="font-size:12px">Fase:</strong>
+        <button class="filt active" onclick="filtEqFase('all',this)">Todos</button>
+        <button class="filt" onclick="filtEqFase('F32',this)">Fase 32</button>
+        <button class="filt" onclick="filtEqFase('OCT',this)">Octavos</button>
+        <button class="filt" onclick="filtEqFase('CUAR',this)">Cuartos</button>
+        <button class="filt" onclick="filtEqFase('SEMI',this)">Semifinal</button>
+        <button class="filt" onclick="filtEqFase('TERC',this)">3er Lugar</button>
+        <button class="filt" onclick="filtEqFase('FINAL',this)">Final</button>
+      </div>
+      <div class="tbl-wrap"><table class="ttbl" id="equipos-tbl"></table></div>
     </div>
 
     <!-- EXTRAS SUB-TAB -->
@@ -788,7 +808,7 @@ function renderTrans(faseF){
 }
 function filtFase(f,btn){
   curFase=f;
-  document.querySelectorAll('.filt').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#stab-marcadores-content .filt').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderTrans(f);
 }
@@ -797,12 +817,176 @@ function filtFase(f,btn){
 // SUB-TABS TRANSPARENCIA
 // ============================================================
 function showSubTab(id){
-  ['marcadores','extras','colombia'].forEach(t=>{
+  ['marcadores','equipos','extras','colombia'].forEach(t=>{
     document.getElementById('stab-'+t+'-content').style.display = t===id ? 'block' : 'none';
     document.getElementById('stab-'+t).classList.toggle('active', t===id);
   });
   if(id==='extras') renderExtras();
   if(id==='colombia') renderColombia();
+  if(id==='equipos') renderEquipos(curEqFase);
+}
+
+// ============================================================
+// EQUIPOS TABLE
+// ============================================================
+let curEqFase = 'all';
+
+function filtEqFase(f, btn){
+  curEqFase = f;
+  document.querySelectorAll('.filt').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEquipos(f);
+}
+
+function renderEquipos(faseF){
+  const real = getRealScores();
+  const realEq = BASE_DATA.real_equipos || {};
+
+  // Slot descriptions per partido
+  const SLOT_DESC = {
+    '73':['2° Gpo A','2° Gpo B'],'74':['1° Gpo E','3° ABCDF'],
+    '75':['1° Gpo F','2° Gpo C'],'76':['1° Gpo C','2° Gpo F'],
+    '77':['1° Gpo I','3° CDFGH'],'78':['2° Gpo E','2° Gpo I'],
+    '79':['1° Gpo A','3° CEFHI'],'80':['1° Gpo L','3° EHIJK'],
+    '81':['1° Gpo D','3° BEFIJ'],'82':['1° Gpo G','3° AEHIJ'],
+    '83':['2° Gpo K','2° Gpo L'],'84':['1° Gpo H','2° Gpo J'],
+    '85':['1° Gpo B','3° EFGIJ'],'86':['1° Gpo J','2° Gpo H'],
+    '87':['1° Gpo K','3° DEIJL'],'88':['2° Gpo D','2° Gpo G'],
+    '89':['G#74','G#77'],'90':['G#73','G#75'],
+    '91':['G#76','G#78'],'92':['G#79','G#80'],
+    '93':['G#83','G#84'],'94':['G#81','G#82'],
+    '95':['G#86','G#88'],'96':['G#85','G#87'],
+    '97':['G#89','G#90'],'98':['G#93','G#94'],
+    '99':['G#91','G#92'],'100':['G#95','G#96'],
+    '101':['G#97','G#98'],'102':['G#99','G#100'],
+    '103':['P#101','P#102'],'104':['G#101','G#102'],
+  };
+
+  const filtered = faseF==='all' ? PARTIDOS :
+    PARTIDOS.filter(p => BASE_DATA.partido_phases[p] === faseF);
+
+  // Header row
+  let h = '<thead><tr><th class="nm">Participante</th>';
+  filtered.forEach(pnum => {
+    const slots = SLOT_DESC[pnum] || ['?','?'];
+    h += `<th style="min-width:110px">P#${pnum}<br>
+      <span style="font-size:8px;font-weight:400;opacity:.8">${slots[0]}</span><br>
+      <span style="font-size:8px;font-weight:400;opacity:.6">vs ${slots[1]}</span></th>`;
+  });
+  h += '</tr></thead><tbody>';
+
+  // Real equipos row
+  h += '<tr class="rrow"><td class="nm">✅ Resultado real</td>';
+  filtered.forEach(pnum => {
+    const re = realEq[pnum] || {};
+    const val = re.e1 ? `${re.e1}<br>${re.e2}` : '—';
+    h += `<td style="line-height:1.6;font-size:11px">${val}</td>`;
+  });
+  h += '</tr>';
+
+  // Each participant
+  BASE_DATA.participants.forEach(part => {
+    const n = part.num.toString();
+    const predE = BASE_DATA.predictions_e[n] || {};
+    h += `<tr><td class="nm">${part.name}<br><span style="font-size:9px;color:var(--gris)">${part.id}</span></td>`;
+
+    filtered.forEach(pnum => {
+      const pred = predE[pnum] || {};
+      const re = realEq[pnum] || {};
+      const e1 = pred.e1 || null;
+      const e2 = pred.e2 || null;
+
+      if (!e1 && !e2) { h += '<td class="cpend">—</td>'; return; }
+
+      const val = `${e1||'?'}<br>${e2||'?'}`;
+
+      if (!re.e1) {
+        // Pending — no real result yet
+        h += `<td class="cpend" style="line-height:1.6;font-size:11px">${val}</td>`;
+        return;
+      }
+
+      // Score: both correct = green, one correct = yellow, none = red
+      const match1 = re.e1 && e1 && re.e1.toLowerCase()===e1.toLowerCase();
+      const match2 = re.e2 && e2 && re.e2.toLowerCase()===e2.toLowerCase();
+      let cls = 'cm'; // miss
+      if (match1 && match2) cls = 'ce';       // both correct
+      else if (match1 || match2) cls = 'cw';  // one correct
+
+      h += `<td class="${cls}" style="line-height:1.6;font-size:11px">${val}</td>`;
+    });
+    h += '</tr>';
+  });
+
+  // Final standings row (Campeón, Sub, 3er, 4to)
+  h += '<tr style="background:#EEF2FF"><td class="nm" style="font-weight:700">🏆 Final</td>';
+  filtered.forEach(pnum => { h += '<td></td>'; });
+  h += '</tr>';
+
+  h += '</tbody>';
+  document.getElementById('equipos-tbl').innerHTML = h;
+
+  // Add final standings table below
+  renderFinalStandings();
+}
+
+function renderFinalStandings(){
+  const FINAL_KEYS = [
+    {key:'camp', label:'🥇 Campeón', pts:80},
+    {key:'sub',  label:'🥈 Subcampeón', pts:40},
+    {key:'3er',  label:'🥉 3er puesto', pts:40},
+    {key:'4to',  label:'4° puesto', pts:30},
+  ];
+  const realEq = BASE_DATA.real_equipos || {};
+
+  let h = `<div style="background:white;border-radius:12px;margin-top:12px;overflow:hidden;box-shadow:0 1px 5px rgba(0,0,0,.08)">
+    <div style="background:var(--azul);color:white;padding:10px 16px;font-weight:700;font-size:13px">
+      🏆 Clasificación Final Pronosticada
+    </div>
+    <div style="overflow-x:auto"><table class="ttbl" style="min-width:100%">
+    <thead><tr><th class="nm">Participante</th>`;
+  FINAL_KEYS.forEach(f => {
+    h += `<th style="min-width:120px">${f.label}<br><span style="font-size:9px;font-weight:400">${f.pts} pts</span></th>`;
+  });
+  h += '</tr></thead><tbody>';
+
+  // Real result row
+  h += '<tr class="rrow"><td class="nm">✅ Resultado real</td>';
+  FINAL_KEYS.forEach(f => {
+    const v = realEq[f.key] || null;
+    h += `<td>${v||'—'}</td>`;
+  });
+  h += '</tr>';
+
+  BASE_DATA.participants.forEach(part => {
+    const n = part.num.toString();
+    const predE = BASE_DATA.predictions_e[n] || {};
+    h += `<tr><td class="nm">${part.name}<br><span style="font-size:9px;color:var(--gris)">${part.id}</span></td>`;
+    FINAL_KEYS.forEach(f => {
+      const v = predE[f.key] || null;
+      const realV = realEq[f.key] || null;
+      let cls = 'cpend';
+      if (realV && v) {
+        cls = realV.toLowerCase()===v.toLowerCase() ? 'ce' : 'cm';
+      }
+      h += `<td class="${cls}">${v||'—'}</td>`;
+    });
+    h += '</tr>';
+  });
+  h += '</tbody></table></div></div>';
+
+  // Append to equipos tab
+  const existing = document.getElementById('final-standings-tbl');
+  if(existing) existing.innerHTML = h;
+  else {
+    const wrap = document.getElementById('stab-equipos-content');
+    if(wrap){
+      const div = document.createElement('div');
+      div.id = 'final-standings-tbl';
+      div.innerHTML = h;
+      wrap.appendChild(div);
+    }
+  }
 }
 
 // ============================================================
