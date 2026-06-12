@@ -1229,16 +1229,25 @@ function saveAll(){
 // EXPORTAR HTML
 // ============================================================
 function exportHTML(){
-  // Cerrar el modal ANTES de capturar el DOM para que no quede abierto en el export
-  document.getElementById('admin-overlay').classList.remove('open');
+  // Cerrar y ocultar el modal ANTES de capturar el DOM
+  const overlay = document.getElementById('admin-overlay');
+  overlay.classList.remove('open');
+  overlay.style.display = 'none';
 
   const real=getRealScores();
   const realX=getRealExtras();
   let src = document.documentElement.outerHTML;
 
-  // Limpiar cualquier estado de modal abierto que haya quedado en el HTML capturado
+  // Restaurar display del overlay en el DOM vivo (no afecta el export)
+  overlay.style.display = '';
+
+  // Limpiar CUALQUIER estado del modal en el string exportado
   src = src.replace(/class="overlay open"/g, 'class="overlay"');
   src = src.replace(/class="overlay  open"/g, 'class="overlay"');
+  // Eliminar el overlay completamente del HTML exportado — los receptores no son admins
+  src = src.replace(/<div class="overlay"[\s\S]*?<\/div>\s*<!-- ADMIN MODAL end -->/, '');
+  // Fallback: forzar display:none en el overlay exportado
+  src = src.replace('id="admin-overlay"', 'id="admin-overlay" style="display:none!important"');
 
   // Embed updated scores and extras into BASE_DATA
   const updatedData = JSON.parse(JSON.stringify(BASE_DATA));
