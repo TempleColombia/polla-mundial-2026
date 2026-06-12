@@ -558,6 +558,70 @@ function calcMarcador(pred, real, fase) {
   return {pts:0, tipo:'miss'};
 }
 
+// ============================================================
+// PUNTOS EXTRAS
+// ============================================================
+function calcExtrasScore(n) {
+  const px = BASE_DATA.predictions_x[n] || {};
+  const realX = getRealExtras();
+  let pts = 0;
+
+  function matchVal(pred, real) {
+    if (!pred || !real) return false;
+    return pred.toString().trim().toLowerCase() === real.toString().trim().toLowerCase();
+  }
+  function matchNum(pred, real) {
+    if (pred==null || real==null) return false;
+    return parseInt(pred) === parseInt(real);
+  }
+
+  // Generales (120 pts total_goles exacto)
+  if (matchNum(px.total_goles, realX.real_total_goles)) pts += 120;
+  if (matchVal(px.goleador, realX.real_goleador)) pts += 50;
+  if (matchNum(px.goles_goleador, realX.real_goles_goleador)) pts += 50;
+  // Hitos goles (40 c/u)
+  ['25','50','75','100','125','150'].forEach(h => {
+    if (matchVal(px['gol_'+h], realX['real_gol_'+h])) pts += 40;
+  });
+  // Equipos stats (30 c/u)
+  if (matchVal(px.ultimo_lugar, realX.real_ultimo_lugar)) pts += 30;
+  if (matchVal(px.mas_goles_fav, realX.real_mas_goles_fav)) pts += 30;
+  if (matchVal(px.mas_goles_contra, realX.real_mas_goles_contra)) pts += 30;
+  if (matchVal(px.menos_goles_fav, realX.real_menos_goles_fav)) pts += 30;
+  if (matchVal(px.menos_goles_contra, realX.real_menos_goles_contra)) pts += 30;
+  // Primer/último gol (20 c/u)
+  if (matchVal(px.primer_gol_equipo, realX.real_primer_gol_equipo)) pts += 20;
+  if (matchVal(px.ultimo_gol_equipo, realX.real_ultimo_gol_equipo)) pts += 20;
+  // Continentes (20 c/u)
+  if (matchVal(px.continente_camp, realX.real_continente_camp)) pts += 20;
+  if (matchVal(px.continente_subcamp, realX.real_continente_subcamp)) pts += 20;
+
+  return pts;
+}
+
+function calcColombiaScore(n) {
+  const px = BASE_DATA.predictions_x[n] || {};
+  const realX = getRealExtras();
+  let pts = 0;
+  function matchVal(pred, real) {
+    if (!pred || !real) return false;
+    return pred.toString().trim().toLowerCase() === real.toString().trim().toLowerCase();
+  }
+  function matchNum(pred, real) {
+    if (pred==null || real==null) return false;
+    return parseInt(pred) === parseInt(real);
+  }
+  if (matchVal(px.col_1er_gol, realX.real_col_1er_gol)) pts += 40;
+  if (matchVal(px.col_ultimo_gol, realX.real_col_ultimo_gol)) pts += 40;
+  if (matchNum(px.col_goles_fav, realX.real_col_goles_fav)) pts += 50;
+  if (matchNum(px.col_goles_contra, realX.real_col_goles_contra)) pts += 50;
+  if (matchNum(px.col_posicion, realX.real_col_posicion)) pts += 70;
+  return pts;
+}
+
+// ============================================================
+// CALC ALL SCORES — marcadores + extras + colombia
+// ============================================================
 function calcAllScores() {
   const real = getRealScores();
   const res = {};
@@ -574,6 +638,8 @@ function calcAllScores() {
       det[pnum] = {...calc, pred: pred||null, real: r||null};
       ptsMar += calc.pts;
     });
+    ptsExt = calcExtrasScore(n);
+    ptsCol = calcColombiaScore(n);
     res[n] = {name:p.name, id:p.id, ptsMar, ptsCl, ptsCol, ptsExt,
                total: ptsMar+ptsCl+ptsCol+ptsExt, det};
   });
@@ -744,15 +810,24 @@ function renderGrafico(){
     return;
   }
   const labels=played.map(p=>`P#${p}`);
+  // Pre-compute extras+colombia per participant (added at end of partidos)
+  const extPts = {};
+  BASE_DATA.participants.forEach(p => {
+    const n = p.num.toString();
+    extPts[n] = calcExtrasScore(n) + calcColombiaScore(n);
+  });
+
   const datasets=BASE_DATA.participants.map((part,i)=>{
     const n=part.num.toString();
     const predM=BASE_DATA.predictions_m[n]||{};
     let cum=0;
-    const data=played.map(pnum=>{
+    const data=played.map((pnum, idx)=>{
       const fase=BASE_DATA.partido_phases[pnum];
       const r=real[pnum];
       const pred=predM[pnum];
       if(pred) cum+=calcMarcador(pred,r,fase).pts;
+      // Add extras on last played partido
+      if(idx===played.length-1) cum+=extPts[n];
       return cum;
     });
     return {label:part.name,data,borderColor:COLORS[i%COLORS.length],
