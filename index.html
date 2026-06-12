@@ -530,10 +530,14 @@ const PTS = {
 // ESTADO — mezcla datos base con localStorage
 // ============================================================
 function getRealScores() {
-  const base = JSON.parse(JSON.stringify(BASE_DATA.real_scores));
+  // BASE_DATA.real_scores has embedded results; localStorage has local admin changes
+  const base = JSON.parse(JSON.stringify(BASE_DATA.real_scores || {}));
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    Object.assign(base, saved);
+    // Merge: local admin changes override embedded
+    Object.keys(saved).forEach(k => {
+      if (saved[k] && saved[k].e1 !== null) base[k] = saved[k];
+    });
   } catch(e) {}
   return base;
 }
@@ -1098,7 +1102,12 @@ const COL_FIELDS = [
 
 // Real extras results — admin can set these too (stored in localStorage under extras key)
 function getRealExtras(){
-  try { return JSON.parse(localStorage.getItem('polla_extras_2026')||'{}'); } catch(e){return{};}
+  // Merge: BASE_DATA.real_extras (embedded in export) + localStorage (local admin changes)
+  const base = BASE_DATA.real_extras || {};
+  try {
+    const local = JSON.parse(localStorage.getItem('polla_extras_2026')||'{}');
+    return Object.assign({}, base, local); // local overrides embedded
+  } catch(e){ return base; }
 }
 function saveRealExtras(obj){ localStorage.setItem('polla_extras_2026', JSON.stringify(obj)); }
 
