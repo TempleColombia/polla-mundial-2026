@@ -1313,48 +1313,45 @@ function saveAll(){
 // EXPORTAR HTML
 // ============================================================
 function exportHTML(){
-  // Usar el HTML original limpio (capturado al inicio antes de cualquier manipulación del DOM)
-  // Esto evita que estados del modal u otros elementos dinámicos contaminen el export
   const real=getRealScores();
   const realX=getRealExtras();
   const gruposExp=getGruposData();
   const golsExp=getGoleadoresData();
 
-  // Partir del HTML original limpio
-  let out = _ORIGINAL_HTML_SOURCE;
-
-  // Embeber datos actualizados en BASE_DATA
   const updatedData = JSON.parse(JSON.stringify(BASE_DATA));
   updatedData.real_scores = real;
   updatedData.real_extras = realX;
   updatedData.grupos_results = gruposExp;
-  const newDataStr = 'const BASE_DATA = ' + JSON.stringify(updatedData) + ';';
-  out = out.replace(/const BASE_DATA = \{[\s\S]*?\};/, newDataStr);
 
-  // También embeber _ORIGINAL_HTML_SOURCE actualizado para que el próximo export funcione
-  // Remove _ORIGINAL_HTML_SOURCE from export so it re-captures fresh on next load
-  out = out.replace(/const _ORIGINAL_HTML_SOURCE = document\.documentElement\.outerHTML;\n/, '');
+  function buildAndDownload(rawSrc) {
+    let out = rawSrc;
+    // Inject updated BASE_DATA
+    const newDataStr = 'const BASE_DATA = ' + JSON.stringify(updatedData) + ';';
+    out = out.replace(/const BASE_DATA = \{[\s\S]*?\};/, newDataStr);
+    // Hide admin overlay in exported file
+    out = out.replace('</head>', '<style>#admin-overlay,#admin-overlay.open{display:none!important;pointer-events:none!important}</style></head>');
+    // Seed localStorage for grupos/goleadores data
+    const seedScript = '<script>try{localStorage.setItem(' + JSON.stringify(STORAGE_KEY) + ',' + JSON.stringify(JSON.stringify(real)) + ');}catch(e){}try{localStorage.setItem("polla_extras_2026",' + JSON.stringify(JSON.stringify(realX)) + ');}catch(e){}try{localStorage.setItem("polla_grupos_2026",' + JSON.stringify(JSON.stringify(gruposExp)) + ');}catch(e){}try{localStorage.setItem("polla_goleadores_2026",' + JSON.stringify(JSON.stringify(golsExp)) + ');}catch(e){}<\/script>';
+    out = out.replace('</body>', seedScript + '</body>');
+    const blob = new Blob([out], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date();
+    const ds = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    const tm = `${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+    a.href=url; a.download=`Polla_Lemaitre_2026_${ds}_${tm}.html`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
 
-  // Seed localStorage para que datos de grupos/goleadores también lleguen
-  const seedScript = `<script>
-    try{localStorage.setItem('${STORAGE_KEY}',${JSON.stringify(JSON.stringify(real))});}catch(e){}
-    try{localStorage.setItem('polla_extras_2026',${JSON.stringify(JSON.stringify(realX))});}catch(e){}
-    try{localStorage.setItem('polla_grupos_2026',${JSON.stringify(JSON.stringify(gruposExp))});}catch(e){}
-    try{localStorage.setItem('polla_goleadores_2026',${JSON.stringify(JSON.stringify(golsExp))});}catch(e){}
-  <\/script>`;
-  // Force overlay hidden in exported file via injected style
-  const hideOverlay = '<style>#admin-overlay{display:none!important}</style>';
-  out = out.replace('</head>', hideOverlay + '</head>');
-  out = out.replace('</body>', seedScript + '</body>');
-  const blob = new Blob([out], {type:'text/html;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const d = new Date();
-  const ds = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-  const tm = `${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
-  a.href=url; a.download=`Polla_Lemaitre_2026_${ds}_${tm}.html`;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
+  // Fetch the raw HTML source (works on GitHub Pages and local server)
+  // This avoids the DOM contamination problem of outerHTML
+  fetch(window.location.href + '?nocache=' + Date.now(), {cache:'no-store'})
+    .then(r => { if(!r.ok) throw new Error('fetch failed'); return r.text(); })
+    .then(rawSrc => buildAndDownload(rawSrc))
+    .catch(err => {
+      alert('No se pudo descargar el archivo automáticamente.\n\nPara actualizar la página en GitHub:\n1. Ve a github.com/TempleColombia/polla-mundial-2026\n2. Sube el archivo index.html actualizado manualmente.\n\nError: ' + err.message);
+    });
 }
 
 // Close modal on overlay click
@@ -1758,7 +1755,6 @@ function saveGrupoPartido(id, eq1, eq2, grupo){
 // INIT
 // ============================================================
 // Store the original clean HTML source for export (before any DOM manipulation)
-const _ORIGINAL_HTML_SOURCE = document.documentElement.outerHTML;
 renderPosiciones();
 </script>
 </body>
