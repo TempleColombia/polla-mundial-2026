@@ -854,9 +854,20 @@ function renderTrans(faseF){
   const real=getRealScores();
   const filtered=faseF==='all'?PARTIDOS:PARTIDOS.filter(p=>BASE_DATA.partido_phases[p]===faseF);
   let h='<thead><tr><th class="nm">Participante</th>';
+  const TRANS_SLOTS = {
+    '73':'2°A vs 2°B','74':'1°E vs 3°ABCDF','75':'1°F vs 2°C','76':'1°C vs 2°F',
+    '77':'1°I vs 3°CDFGH','78':'2°E vs 2°I','79':'1°A vs 3°CEFHI','80':'1°L vs 3°EHIJK',
+    '81':'1°D vs 3°BEFIJ','82':'1°G vs 3°AEHIJ','83':'2°K vs 2°L','84':'1°H vs 2°J',
+    '85':'1°B vs 3°EFGIJ','86':'1°J vs 2°H','87':'1°K vs 3°DEIJL','88':'2°D vs 2°G',
+    '89':'G#74 vs G#77','90':'G#73 vs G#75','91':'G#76 vs G#78','92':'G#79 vs G#80',
+    '93':'G#83 vs G#84','94':'G#81 vs G#82','95':'G#86 vs G#88','96':'G#85 vs G#87',
+    '97':'G#89 vs G#90','98':'G#93 vs G#94','99':'G#91 vs G#92','100':'G#95 vs G#96',
+    '101':'G#97 vs G#98','102':'G#99 vs G#100','103':'P#101 vs P#102','104':'G#101 vs G#102'
+  };
   filtered.forEach(pnum=>{
-    const lbl=BASE_DATA.partido_labels[pnum]||['?','?'];
-    h+=`<th>P#${pnum}<br><span style="font-weight:400;font-size:9px">${lbl[0]}</span></th>`;
+    const re = (BASE_DATA.real_equipos||{})[pnum]||{};
+    const sub = (re.e1 && re.e2) ? (re.e1+' vs '+re.e2) : (TRANS_SLOTS[pnum]||'?');
+    h+=`<th>P#${pnum}<br><span style="font-weight:400;font-size:9px">${sub}</span></th>`;
   });
   h+='</tr></thead><tbody>';
   h+='<tr class="rrow"><td class="nm">⚽ Resultado real</td>';
