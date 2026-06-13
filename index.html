@@ -948,9 +948,13 @@ function renderEquipos(faseF){
   let h = '<thead><tr><th class="nm">Participante</th>';
   filtered.forEach(pnum => {
     const slots = SLOT_DESC[pnum] || ['?','?'];
+    const re2 = (BASE_DATA.real_equipos||{})[pnum]||{};
+    // Show real teams if known, otherwise show slot description
+    const topLabel = re2.e1 ? re2.e1 : slots[0];
+    const botLabel = re2.e2 ? re2.e2 : slots[1];
     h += `<th style="min-width:110px">P#${pnum}<br>
-      <span style="font-size:8px;font-weight:400;opacity:.8">${slots[0]}</span><br>
-      <span style="font-size:8px;font-weight:400;opacity:.6">vs ${slots[1]}</span></th>`;
+      <span style="font-size:8px;font-weight:400;opacity:.8">${topLabel}</span><br>
+      <span style="font-size:8px;font-weight:400;opacity:.6">vs ${botLabel}</span></th>`;
   });
   h += '</tr></thead><tbody>';
 
