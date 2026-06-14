@@ -474,24 +474,26 @@ canvas{max-height:400px}
 
         <!-- EXPORTAR -->
         <div class="admin-section" id="asec-exportar">
-          <div style="padding:10px 0 18px">
-            <h4 style="margin-bottom:8px">Exportar HTML actualizado</h4>
-            <p style="font-size:13px;color:var(--gris);margin-bottom:16px">
-              Genera una nueva versión del archivo HTML con todos los marcadores embebidos. 
-              Ese archivo es el que compartes por WhatsApp — cualquier persona lo abre en su navegador y ve el tablero actualizado.
-            </p>
-            <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:16px;font-size:12px">
-              <strong>Flujo recomendado:</strong><br><br>
-              1. Termina el partido<br>
-              2. Abrís este HTML en tu celular o PC<br>
-              3. Clic en Admin → ingresás el marcador → Guardar<br>
-              4. Clic en Exportar HTML → se descarga el archivo actualizado<br>
-              5. Compartís el archivo por WhatsApp<br>
-              6. Todos lo abren y ven el tablero actualizado ✓
+          <div style="padding:16px 0">
+            <h4 style="margin-bottom:12px">📤 Cómo actualizar la página</h4>
+            <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:10px;padding:16px;font-size:13px;line-height:1.7">
+              <strong>El link público siempre está actualizado en GitHub:</strong><br>
+              <a href="https://TempleColombia.github.io/polla-mundial-2026" target="_blank" 
+                 style="color:var(--azul);font-weight:700;word-break:break-all">
+                https://TempleColombia.github.io/polla-mundial-2026
+              </a>
             </div>
-            <button class="btn btn-export" onclick="exportHTML()" style="font-size:14px;padding:11px 24px">
-              📥 Exportar HTML actualizado
-            </button>
+            <div style="background:var(--bg);border-radius:10px;padding:16px;margin-top:12px;font-size:13px;line-height:1.8">
+              <strong>Flujo para actualizar:</strong><br>
+              1. Ingresa los resultados en las pestañas de arriba → <strong>OK</strong><br>
+              2. Avísale a Juan Camilo los marcadores<br>
+              3. Él los sube a GitHub y el link se actualiza en ~30 segundos<br>
+              4. Comparte el link por WhatsApp 🟢
+            </div>
+            <div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:10px;padding:14px;margin-top:12px;font-size:12px;color:#92400E">
+              ⚠️ La función de exportar HTML fue desactivada porque generaba archivos corruptos. 
+              El link de GitHub Pages es la forma correcta de compartir el tablero.
+            </div>
           </div>
         </div>
       </div>
@@ -1328,45 +1330,7 @@ function saveAll(){
 // EXPORTAR HTML
 // ============================================================
 function exportHTML(){
-  const real=getRealScores();
-  const realX=getRealExtras();
-  const gruposExp=getGruposData();
-  const golsExp=getGoleadoresData();
-
-  const updatedData = JSON.parse(JSON.stringify(BASE_DATA));
-  updatedData.real_scores = real;
-  updatedData.real_extras = realX;
-  updatedData.grupos_results = gruposExp;
-
-  function buildAndDownload(rawSrc) {
-    let out = rawSrc;
-    // Inject updated BASE_DATA
-    const newDataStr = 'const BASE_DATA = ' + JSON.stringify(updatedData) + ';';
-    out = out.replace(/const BASE_DATA = \{[\s\S]*?\};/, newDataStr);
-    // Hide admin overlay in exported file
-    out = out.replace('</head>', '<style>#admin-overlay,#admin-overlay.open{display:none!important;pointer-events:none!important}</style></head>');
-    // Seed localStorage for grupos/goleadores data
-    const seedScript = '<script>try{localStorage.setItem(' + JSON.stringify(STORAGE_KEY) + ',' + JSON.stringify(JSON.stringify(real)) + ');}catch(e){}try{localStorage.setItem("polla_extras_2026",' + JSON.stringify(JSON.stringify(realX)) + ');}catch(e){}try{localStorage.setItem("polla_grupos_2026",' + JSON.stringify(JSON.stringify(gruposExp)) + ');}catch(e){}try{localStorage.setItem("polla_goleadores_2026",' + JSON.stringify(JSON.stringify(golsExp)) + ');}catch(e){}<\/script>';
-    out = out.replace('</body>', seedScript + '</body>');
-    const blob = new Blob([out], {type:'text/html;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const d = new Date();
-    const ds = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-    const tm = `${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
-    a.href=url; a.download=`Polla_Lemaitre_2026_${ds}_${tm}.html`;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
-  }
-
-  // Fetch the raw HTML source (works on GitHub Pages and local server)
-  // This avoids the DOM contamination problem of outerHTML
-  fetch(window.location.href + '?nocache=' + Date.now(), {cache:'no-store'})
-    .then(r => { if(!r.ok) throw new Error('fetch failed'); return r.text(); })
-    .then(rawSrc => buildAndDownload(rawSrc))
-    .catch(err => {
-      alert('No se pudo descargar el archivo automáticamente.\n\nPara actualizar la página en GitHub:\n1. Ve a github.com/TempleColombia/polla-mundial-2026\n2. Sube el archivo index.html actualizado manualmente.\n\nError: ' + err.message);
-    });
+  alert('Para actualizar: ingresa los resultados en Admin y avísale a Juan Camilo para que suba los cambios a GitHub.');
 }
 
 // Close modal on overlay click
