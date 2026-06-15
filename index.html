@@ -1655,9 +1655,19 @@ function buildMundialAdminForm(){
     html += `<div class="fase-group"><div class="fase-group-title">${gdata.name}</div><div class="mgrid">`;
     pairings.forEach(pair=>{
       const id = `${gkey}_${pair.eq1}_${pair.eq2}`.replace(/[\s.]/g,'_');
-      const existing = gruposData.find(p=>p.id===id);
-      const e1v = existing?.e1??'', e2v = existing?.e2??'';
-      const played = existing?.e1!=null;
+      // Match by team names (case-insensitive) regardless of ID format
+      const existing = gruposData.find(p=>{
+        const m1 = p.eq1&&p.eq2 && 
+          p.eq1.toLowerCase()===pair.eq1.toLowerCase() && 
+          p.eq2.toLowerCase()===pair.eq2.toLowerCase();
+        const m2 = p.eq1&&p.eq2 &&
+          p.eq1.toLowerCase()===pair.eq2.toLowerCase() && 
+          p.eq2.toLowerCase()===pair.eq1.toLowerCase();
+        return m1||m2;
+      });
+      const e1v = existing ? (existing.eq1.toLowerCase()===pair.eq1.toLowerCase() ? existing.e1 : existing.e2) : '';
+      const e2v = existing ? (existing.eq1.toLowerCase()===pair.eq1.toLowerCase() ? existing.e2 : existing.e1) : '';
+      const played = existing && existing.e1!=null;
       html += `<div class="mcard${played?' played':''}" id="gmc-${id}">
         <div class="mcard-num">Grupo ${gkey}</div>
         <div class="mcard-teams">${pair.eq1} vs ${pair.eq2}</div>
@@ -1746,11 +1756,16 @@ function saveGrupoPartido(id, eq1, eq2, grupo){
   const e1 = document.getElementById('ge1-'+id)?.value;
   const e2 = document.getElementById('ge2-'+id)?.value;
   if(e1===''||e2==='') return;
-  const data = getGruposData();
-  const idx = data.findIndex(p=>p.id===id);
+  const localData = JSON.parse(localStorage.getItem(STORAGE_GRUPOS)||'[]');
+  // Remove any existing entry with these teams (by name match)
+  const cleaned = localData.filter(p=>{
+    const m1 = p.eq1&&p.eq2 && p.eq1.toLowerCase()===eq1.toLowerCase() && p.eq2.toLowerCase()===eq2.toLowerCase();
+    const m2 = p.eq1&&p.eq2 && p.eq1.toLowerCase()===eq2.toLowerCase() && p.eq2.toLowerCase()===eq1.toLowerCase();
+    return !m1 && !m2;
+  });
   const entry = {id, eq1, eq2, grupo, e1:parseInt(e1), e2:parseInt(e2)};
-  if(idx>=0) data[idx]=entry; else data.push(entry);
-  saveGruposData(data);
+  cleaned.push(entry);
+  localStorage.setItem(STORAGE_GRUPOS, JSON.stringify(cleaned));
   const card = document.getElementById('gmc-'+id);
   if(card){
     card.classList.add('played');
