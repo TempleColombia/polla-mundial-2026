@@ -665,18 +665,21 @@ function renderPosiciones() {
   const leader = sorted[0]?.total || 0;
 
   const real = getRealScores();
-  const played = PARTIDOS.filter(p => {const s=real[p]; return s&&s.e1!==null;}).length;
+  const playedF32 = PARTIDOS.filter(p => {const s=real[p]; return s&&s.e1!==null;}).length;
+  const playedGrupos = getGruposData().filter(p=>p.e1!=null).length;
+  const played = playedGrupos + playedF32;
   document.getElementById('status-txt').textContent = `${played}/104 partidos jugados`;
 
   const phases = ['F32','OCT','CUAR','SEMI','TERC','FINAL'];
   const played32 = PARTIDOS.slice(0,16).filter(p=>{const s=real[p];return s&&s.e1!==null;}).length;
   const playedOct = PARTIDOS.slice(16,24).filter(p=>{const s=real[p];return s&&s.e1!==null;}).length;
   let faseLabel = '⚽ Torneo no iniciado';
-  if(played>0) faseLabel='🔵 Fase 32 en curso';
+  if(playedGrupos>0 && playedGrupos<48) faseLabel='🔵 Fase de Grupos';
+  if(playedGrupos>=48) faseLabel='🔵 Fase 32 en curso';
   if(played32===16) faseLabel='🟡 Octavos de Final';
   if(playedOct===8) faseLabel='🟠 Cuartos de Final';
-  if(played>=76) faseLabel='🔴 Semifinales';
-  if(played>=78) faseLabel='🏆 Definiendo campeón';
+  if(playedF32>=12) faseLabel='🔴 Semifinales';
+  if(playedF32>=14) faseLabel='🏆 Definiendo campeón';
   document.getElementById('fase-badge').textContent = faseLabel;
   document.getElementById('upd-ts').textContent = `Actualizado: ${new Date().toLocaleString('es-CO')}`;
 
@@ -1475,10 +1478,17 @@ function renderHitos(){
 }
 
 function renderGoleadores(){
-  const gols = getGoleadoresData();
-  // Aggregate by player
+  // Read from BASE_DATA.grupos_goleadores (embedded) + localStorage admin additions
+  const base = BASE_DATA.grupos_goleadores || [];
+  const localGols = getGoleadoresData();
   const byPlayer = {};
-  gols.forEach(g=>{
+  // Embedded goleadores
+  base.forEach(g => {
+    const k = g.nombre.trim();
+    byPlayer[k] = {nombre:k, equipo:g.equipo||'', goles:g.goles||0};
+  });
+  // Local admin gol-by-gol entries
+  localGols.forEach(g=>{
     if(!g.nombre) return;
     const k = g.nombre.trim();
     if(!byPlayer[k]) byPlayer[k]={nombre:k, equipo:g.equipo||'', goles:0};
@@ -1500,6 +1510,7 @@ function renderGoleadores(){
   }
   document.getElementById('goleadores-content').innerHTML = html;
 }
+
 
 function renderResultados(){
   const gruposData = getGruposData();
