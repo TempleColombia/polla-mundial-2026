@@ -1736,11 +1736,15 @@ function saveGrupoPartido(id, eq1, eq2, grupo){
 (function cleanDuplicates(){
   try {
     const key = 'polla_grupos_2026';
-    const data = JSON.parse(localStorage.getItem(key) || '[]');
-    // D_USA_PAR fue un duplicado ingresado manualmente — eliminar
-    const cleaned = data.filter(r => r.id !== 'D_USA_PAR');
-    if(cleaned.length !== data.length){
+    const localData = JSON.parse(localStorage.getItem(key) || '[]');
+    // IDs ya incluidos en BASE_DATA.grupos_results no deben estar en localStorage
+    const embeddedIds = new Set((BASE_DATA.grupos_results||[]).map(r=>r.id));
+    // También limpiar ID antiguo duplicado
+    embeddedIds.add('D_USA_PAR');
+    const cleaned = localData.filter(r => !embeddedIds.has(r.id));
+    if(cleaned.length !== localData.length){
       localStorage.setItem(key, JSON.stringify(cleaned));
+      console.log('Limpiados ' + (localData.length-cleaned.length) + ' duplicados de localStorage');
     }
   } catch(e){}
 })();
