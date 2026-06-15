@@ -494,6 +494,15 @@ canvas{max-height:400px}
               ⚠️ La función de exportar HTML fue desactivada porque generaba archivos corruptos. 
               El link de GitHub Pages es la forma correcta de compartir el tablero.
             </div>
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--borde)">
+              <div style="font-size:13px;font-weight:700;margin-bottom:8px">🧹 Limpiar datos locales</div>
+              <div style="font-size:12px;color:var(--gris);margin-bottom:10px">
+                Si ves goles duplicados o partidos repetidos, usa este botón para limpiar el localStorage y quedar sincronizado con GitHub.
+              </div>
+              <button class="btn btn-danger" onclick="limpiarLocalStorage()" style="font-size:13px;padding:9px 18px">
+                🗑️ Limpiar localStorage
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1332,6 +1341,16 @@ function saveAll(){
 // ============================================================
 // EXPORTAR HTML
 // ============================================================
+function limpiarLocalStorage(){
+  if(!confirm('¿Seguro? Esto borrará todos los datos ingresados localmente en este navegador. Los datos en GitHub quedan intactos.')) return;
+  localStorage.removeItem('polla_lemaitre_2026_scores');
+  localStorage.removeItem('polla_extras_2026');
+  localStorage.removeItem('polla_grupos_2026');
+  localStorage.removeItem('polla_goleadores_2026');
+  alert('✓ localStorage limpiado. Recarga la página.');
+  location.reload();
+}
+
 function exportHTML(){
   alert('Para actualizar: ingresa los resultados en Admin y avísale a Juan Camilo para que suba los cambios a GitHub.');
 }
@@ -1748,11 +1767,26 @@ function saveGrupoPartido(id, eq1, eq2, grupo){
   try {
     const key = 'polla_grupos_2026';
     const localData = JSON.parse(localStorage.getItem(key) || '[]');
-    // IDs ya incluidos en BASE_DATA.grupos_results no deben estar en localStorage
-    const embeddedIds = new Set((BASE_DATA.grupos_results||[]).map(r=>r.id));
-    // También limpiar ID antiguo duplicado
+    const embedded = BASE_DATA.grupos_results || [];
+    // Build a set of team-pair keys already in BASE_DATA (regardless of ID format)
+    const embeddedPairs = new Set(embedded.map(r => {
+      const e1 = (r.eq1||'').toLowerCase().replace(/[^a-záéíóúñ]/gi,'');
+      const e2 = (r.eq2||'').toLowerCase().replace(/[^a-záéíóúñ]/gi,'');
+      return e1+'_'+e2;
+    }));
+    // Also embedded IDs
+    const embeddedIds = new Set(embedded.map(r=>r.id));
     embeddedIds.add('D_USA_PAR');
-    const cleaned = localData.filter(r => !embeddedIds.has(r.id));
+    // Filter out local entries that duplicate embedded ones
+    const cleaned = localData.filter(r => {
+      if(embeddedIds.has(r.id)) return false;
+      const e1 = (r.eq1||'').toLowerCase().replace(/[^a-záéíóúñ]/gi,'');
+      const e2 = (r.eq2||'').toLowerCase().replace(/[^a-záéíóúñ]/gi,'');
+      const pair = e1+'_'+e2;
+      const pairRev = e2+'_'+e1;
+      if(embeddedPairs.has(pair) || embeddedPairs.has(pairRev)) return false;
+      return true;
+    });
     if(cleaned.length !== localData.length){
       localStorage.setItem(key, JSON.stringify(cleaned));
       console.log('Limpiados ' + (localData.length-cleaned.length) + ' duplicados de localStorage');
