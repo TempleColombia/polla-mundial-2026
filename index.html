@@ -475,24 +475,25 @@ canvas{max-height:400px}
         <!-- EXPORTAR -->
         <div class="admin-section" id="asec-exportar">
           <div style="padding:16px 0">
-            <h4 style="margin-bottom:12px">📤 Cómo actualizar la página</h4>
-            <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:10px;padding:16px;font-size:13px;line-height:1.7">
-              <strong>El link público siempre está actualizado en GitHub:</strong><br>
-              <a href="https://TempleColombia.github.io/polla-mundial-2026" target="_blank" 
-                 style="color:var(--azul);font-weight:700;word-break:break-all">
-                https://TempleColombia.github.io/polla-mundial-2026
-              </a>
+            <h4 style="margin-bottom:12px">📤 Generar archivo actualizado</h4>
+            <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:10px;padding:16px;font-size:13px;line-height:1.7;margin-bottom:14px">
+              Genera un archivo <strong>index.html</strong> con todos los resultados que ingresaste (marcadores, grupos, extras, goleadores). 
+              Luego lo subes a GitHub para que el link público quede igual al de este navegador.
             </div>
-            <div style="background:var(--bg);border-radius:10px;padding:16px;margin-top:12px;font-size:13px;line-height:1.8">
-              <strong>Flujo para actualizar:</strong><br>
-              1. Ingresa los resultados en las pestañas de arriba → <strong>OK</strong><br>
-              2. Avísale a Juan Camilo los marcadores<br>
-              3. Él los sube a GitHub y el link se actualiza en ~30 segundos<br>
-              4. Comparte el link por WhatsApp 🟢
+            <button id="btn-exportar" class="btn btn-export" onclick="exportHTML()" style="font-size:14px;padding:12px 24px;width:100%">
+              📥 Exportar HTML actualizado
+            </button>
+            <div style="background:var(--bg);border-radius:10px;padding:16px;margin-top:14px;font-size:13px;line-height:1.8">
+              <strong>Después de descargar el archivo:</strong><br>
+              1. Ve a <a href="https://github.com/TempleColombia/polla-mundial-2026" target="_blank" style="color:var(--azul);font-weight:600">github.com/TempleColombia/polla-mundial-2026</a><br>
+              2. Clic en <strong>index.html</strong> → ícono del lápiz (editar)<br>
+              3. Selecciona todo el contenido (Ctrl/Cmd+A) y bórralo<br>
+              4. Abre el archivo descargado con un editor de texto, copia todo, y pégalo ahí<br>
+              5. Clic en <strong>Commit changes</strong> (botón verde abajo)<br>
+              6. En ~30 segundos el link público queda actualizado ✓
             </div>
             <div style="background:#FEF9C3;border:1px solid #FDE68A;border-radius:10px;padding:14px;margin-top:12px;font-size:12px;color:#92400E">
-              ⚠️ La función de exportar HTML fue desactivada porque generaba archivos corruptos. 
-              El link de GitHub Pages es la forma correcta de compartir el tablero.
+              💡 Alternativa más simple: en vez de copiar/pegar texto, en GitHub puedes usar <strong>"Add file" → "Upload files"</strong> y arrastrar directamente el archivo index.html descargado — reemplaza el anterior automáticamente.
             </div>
             <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--borde)">
               <div style="font-size:13px;font-weight:700;margin-bottom:8px">🧹 Limpiar datos locales</div>
@@ -1352,7 +1353,63 @@ function limpiarLocalStorage(){
 }
 
 function exportHTML(){
-  alert('Para actualizar: ingresa los resultados en Admin y avísale a Juan Camilo para que suba los cambios a GitHub.');
+  const btn = document.getElementById('btn-exportar');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Generando archivo...'; }
+
+  const real = getRealScores();
+  const realX = getRealExtras();
+  const gruposExp = getGruposData();
+  const golsExp = getGoleadoresData();
+
+  const updatedData = JSON.parse(JSON.stringify(BASE_DATA));
+  updatedData.real_scores = real;
+  updatedData.real_extras = realX;
+  updatedData.grupos_results = gruposExp;
+  updatedData.grupos_goleadores = aggregateGoleadores(golsExp);
+
+  function aggregateGoleadores(local){
+    const base = BASE_DATA.grupos_goleadores || [];
+    const byPlayer = {};
+    base.forEach(g=>{ byPlayer[g.nombre.trim()] = {nombre:g.nombre.trim(), equipo:g.equipo||'', goles:g.goles||0}; });
+    local.forEach(g=>{
+      if(!g.nombre) return;
+      const k = g.nombre.trim();
+      if(!byPlayer[k]) byPlayer[k] = {nombre:k, equipo:g.equipo||'', goles:0};
+      byPlayer[k].goles++;
+    });
+    return Object.values(byPlayer);
+  }
+
+  function finish(rawSrc, viaFetch){
+    let out = rawSrc;
+    const newDataStr = 'const BASE_DATA = ' + JSON.stringify(updatedData) + ';';
+    out = out.replace(/const BASE_DATA = \{[\s\S]*?\};/, newDataStr);
+    // Asegurar que el overlay del admin no quede visible en el archivo exportado
+    out = out.replace('</head>', '<style>#admin-overlay{display:none!important}</style></head>');
+
+    const blob = new Blob([out], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'index.html';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+
+    if(btn){ btn.disabled=false; btn.textContent='📥 Exportar HTML actualizado'; }
+
+    const msg = viaFetch
+      ? '✓ Archivo generado correctamente.\n\nPara que todos lo vean:\n1. Ve a github.com/TempleColombia/polla-mundial-2026\n2. Abre index.html → clic en el lápiz (editar)\n3. Borra todo y pega el contenido del archivo descargado\n   (o usa "Upload files" y arrastra el archivo descargado)\n4. Commit changes\n\nEn ~30 segundos el link público se actualiza.'
+      : '✓ Archivo generado desde la copia local.\n\nSube este archivo a GitHub (github.com/TempleColombia/polla-mundial-2026 → index.html → editar o subir) para que todos vean los cambios.';
+    alert(msg);
+  }
+
+  // Intentar traer el HTML limpio directamente desde GitHub Pages
+  fetch('https://templecolombia.github.io/polla-mundial-2026/?t=' + Date.now(), {cache:'no-store'})
+    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(rawSrc => finish(rawSrc, true))
+    .catch(err => {
+      console.warn('No se pudo obtener desde GitHub Pages, usando copia local:', err);
+      finish(document.documentElement.outerHTML.replace(/<div id="admin-overlay"[\s\S]*$/,'</body></html>'), false);
+    });
 }
 
 // Close modal on overlay click
