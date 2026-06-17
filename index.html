@@ -1353,63 +1353,55 @@ function limpiarLocalStorage(){
 }
 
 function exportHTML(){
-  const btn = document.getElementById('btn-exportar');
-  if(btn){ btn.disabled=true; btn.textContent='⏳ Generando archivo...'; }
+  try {
+    const real = getRealScores();
+    const realX = getRealExtras();
+    const gruposExp = getGruposData();
+    const golsExp = getGoleadoresData();
 
-  const real = getRealScores();
-  const realX = getRealExtras();
-  const gruposExp = getGruposData();
-  const golsExp = getGoleadoresData();
+    const updatedData = JSON.parse(JSON.stringify(BASE_DATA));
+    updatedData.real_scores = real;
+    updatedData.real_extras = realX;
+    updatedData.grupos_results = gruposExp;
 
-  const updatedData = JSON.parse(JSON.stringify(BASE_DATA));
-  updatedData.real_scores = real;
-  updatedData.real_extras = realX;
-  updatedData.grupos_results = gruposExp;
-  updatedData.grupos_goleadores = aggregateGoleadores(golsExp);
-
-  function aggregateGoleadores(local){
+    // Aggregate goleadores
     const base = BASE_DATA.grupos_goleadores || [];
     const byPlayer = {};
-    base.forEach(g=>{ byPlayer[g.nombre.trim()] = {nombre:g.nombre.trim(), equipo:g.equipo||'', goles:g.goles||0}; });
-    local.forEach(g=>{
+    base.forEach(function(g){ byPlayer[g.nombre.trim()] = {nombre:g.nombre.trim(), equipo:g.equipo||'', goles:g.goles||0}; });
+    golsExp.forEach(function(g){
       if(!g.nombre) return;
       const k = g.nombre.trim();
       if(!byPlayer[k]) byPlayer[k] = {nombre:k, equipo:g.equipo||'', goles:0};
       byPlayer[k].goles++;
     });
-    return Object.values(byPlayer);
-  }
+    updatedData.grupos_goleadores = Object.values(byPlayer);
 
-  function finish(rawSrc, viaFetch){
-    let out = rawSrc;
+    // Usar el HTML actual del documento (simple, sin fetch, sin async)
+    let out = document.documentElement.outerHTML;
     const newDataStr = 'const BASE_DATA = ' + JSON.stringify(updatedData) + ';';
     out = out.replace(/const BASE_DATA = \{[\s\S]*?\};/, newDataStr);
-    // Asegurar que el overlay del admin no quede visible en el archivo exportado
+    // Limpiar el modal de admin para que no quede abierto en el archivo exportado
+    out = out.replace(/<div id="admin-overlay"[^>]*class="[^"]*"/, '<div id="admin-overlay" class="overlay"');
     out = out.replace('</head>', '<style>#admin-overlay{display:none!important}</style></head>');
 
     const blob = new Blob([out], {type:'text/html;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'index.html';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+    a.href = url;
+    a.download = 'index.html';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
 
-    if(btn){ btn.disabled=false; btn.textContent='📥 Exportar HTML actualizado'; }
-
-    const msg = viaFetch
-      ? '✓ Archivo generado correctamente.\n\nPara que todos lo vean:\n1. Ve a github.com/TempleColombia/polla-mundial-2026\n2. Abre index.html → clic en el lápiz (editar)\n3. Borra todo y pega el contenido del archivo descargado\n   (o usa "Upload files" y arrastra el archivo descargado)\n4. Commit changes\n\nEn ~30 segundos el link público se actualiza.'
-      : '✓ Archivo generado desde la copia local.\n\nSube este archivo a GitHub (github.com/TempleColombia/polla-mundial-2026 → index.html → editar o subir) para que todos vean los cambios.';
-    alert(msg);
+    alert('Archivo generado. Si tu navegador no inició la descarga automáticamente, revisa la carpeta de Descargas o la barra de notificaciones del navegador (a veces pide permiso para descargar).');
+  } catch(err) {
+    alert('Error al generar el archivo: ' + err.message + '\n\nPor ahora, mejor avísale a Claude los resultados directamente.');
+    console.error(err);
   }
-
-  // Intentar traer el HTML limpio directamente desde GitHub Pages
-  fetch('https://templecolombia.github.io/polla-mundial-2026/?t=' + Date.now(), {cache:'no-store'})
-    .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-    .then(rawSrc => finish(rawSrc, true))
-    .catch(err => {
-      console.warn('No se pudo obtener desde GitHub Pages, usando copia local:', err);
-      finish(document.documentElement.outerHTML.replace(/<div id="admin-overlay"[\s\S]*$/,'</body></html>'), false);
-    });
 }
 
 // Close modal on overlay click
