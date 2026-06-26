@@ -1147,11 +1147,18 @@ const COL_FIELDS = [
 
 // Real extras results — admin can set these too (stored in localStorage under extras key)
 function getRealExtras(){
-  // Merge: BASE_DATA.real_extras (embedded in export) + localStorage (local admin changes)
+  // Merge: BASE_DATA.real_extras (embedded) + localStorage (local admin changes)
+  // BASE_DATA wins when localStorage has null; localStorage wins only when it has a real value
   const base = BASE_DATA.real_extras || {};
   try {
     const local = JSON.parse(localStorage.getItem('polla_extras_2026')||'{}');
-    return Object.assign({}, base, local); // local overrides embedded
+    const merged = Object.assign({}, base);
+    for (const k in local) {
+      if (local[k] !== null && local[k] !== undefined && local[k] !== '') {
+        merged[k] = local[k];
+      }
+    }
+    return merged;
   } catch(e){ return base; }
 }
 function saveRealExtras(obj){ localStorage.setItem('polla_extras_2026', JSON.stringify(obj)); }
