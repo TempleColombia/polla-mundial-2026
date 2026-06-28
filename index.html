@@ -643,6 +643,45 @@ function calcColombiaScore(n) {
 // ============================================================
 // CALC ALL SCORES — marcadores + extras + colombia
 // ============================================================
+function normEquipo(name) {
+  if (!name) return '';
+  const alias = {
+    'países bajos': 'Holanda', 'paises bajos': 'Holanda',
+    'estados unidos': 'EEUU',
+    'costa de marfil': 'Costa de Marfil',
+    'rd congo': 'RD Congo', 'r.d. congo': 'RD Congo',
+    'república democrática del congo': 'RD Congo',
+    'arabia saudí': 'Arabia Saudí', 'arabia saudi': 'Arabia Saudí',
+    'bosnia': 'Bosnia', 'bosnia herzegovina': 'Bosnia',
+    'cabo verde': 'Cabo Verde',
+  };
+  const n = name.trim().toLowerCase();
+  return alias[n] || name.trim();
+}
+
+function calcClasifScore(numStr) {
+  const predE = BASE_DATA.predictions_e[numStr] || {};
+  const realEq = BASE_DATA.real_equipos || {};
+  let pts = 0;
+  // F32 partidos: 73-88
+  for (let pid = 73; pid <= 88; pid++) {
+    const pidStr = pid.toString();
+    const real = realEq[pidStr];
+    if (!real || !real.e1 || !real.e2) continue;
+    const pred = predE[pidStr];
+    if (!pred) continue;
+    const p1 = normEquipo(pred.e1);
+    const p2 = normEquipo(pred.e2);
+    const r1 = normEquipo(real.e1);
+    const r2 = normEquipo(real.e2);
+    if (p1 === r1 && p2 === r2) pts += 40;
+    else if (p1 === r2 && p2 === r1) pts += 25;
+    else if (p1 === r1 || p2 === r2) pts += 20;
+    else if (p1 === r2 || p2 === r1) pts += 15;
+  }
+  return pts;
+}
+
 function calcAllScores() {
   const real = getRealScores();
   const res = {};
@@ -659,6 +698,7 @@ function calcAllScores() {
       det[pnum] = {...calc, pred: pred||null, real: r||null};
       ptsMar += calc.pts;
     });
+    ptsCl = calcClasifScore(n);
     ptsExt = calcExtrasScore(n);
     ptsCol = calcColombiaScore(n);
     res[n] = {name:p.name, id:p.id, ptsMar, ptsCl, ptsCol, ptsExt,
