@@ -551,9 +551,11 @@ function getRealScores() {
   const base = JSON.parse(JSON.stringify(BASE_DATA.real_scores || {}));
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    // Merge: local admin changes override embedded
+    // Merge: local admin changes override embedded ONLY when local has real scores (g1/g2)
     Object.keys(saved).forEach(k => {
-      if (saved[k] && saved[k].e1 !== null) base[k] = saved[k];
+      if (saved[k] && saved[k].g1 != null && saved[k].g2 != null) {
+        base[k] = Object.assign({}, base[k], saved[k]);
+      }
     });
   } catch(e) {}
   return base;
@@ -567,13 +569,14 @@ function saveRealScores(scores) {
 // CÁLCULO DE PUNTOS
 // ============================================================
 function calcMarcador(pred, real, fase) {
-  if (!real || real.e1 === null || real.e2 === null) return {pts:0, tipo:'pending'};
+  if (!real || real.g1 == null || real.g2 == null) return {pts:0, tipo:'pending'};
   if (!pred || pred.e1 === null || pred.e2 === null) return {pts:0, tipo:'miss'};
   const pp = PTS[fase];
-  if (pred.e1 === real.e1 && pred.e2 === real.e2) return {pts:pp.e, tipo:'exact'};
-  const rw = real.e1 > real.e2 ? 1 : real.e1 < real.e2 ? 2 : 0;
+  const r1 = real.g1, r2 = real.g2;
+  if (pred.e1 === r1 && pred.e2 === r2) return {pts:pp.e, tipo:'exact'};
+  const rw = r1 > r2 ? 1 : r1 < r2 ? 2 : 0;
   const pw = pred.e1 > pred.e2 ? 1 : pred.e1 < pred.e2 ? 2 : 0;
-  const partial = pred.e1 === real.e1 || pred.e2 === real.e2;
+  const partial = pred.e1 === r1 || pred.e2 === r2;
   if (rw === pw) return {pts: partial ? pp.p : pp.g, tipo: partial ? 'partial' : 'winner'};
   if (partial) return {pts:pp.p, tipo:'partial'};
   return {pts:0, tipo:'miss'};
@@ -720,14 +723,14 @@ function renderPosiciones() {
   const leader = sorted[0]?.total || 0;
 
   const real = getRealScores();
-  const playedF32 = PARTIDOS.filter(p => {const s=real[p]; return s&&s.e1!==null;}).length;
+  const playedF32 = PARTIDOS.filter(p => {const s=real[p]; return s&&s.g1!=null&&s.g2!=null;}).length;
   const playedGrupos = getGruposData().filter(p=>p.e1!=null).length;
   const played = playedGrupos + playedF32;
   document.getElementById('status-txt').textContent = `${played}/104 partidos jugados`;
 
   const phases = ['F32','OCT','CUAR','SEMI','TERC','FINAL'];
-  const played32 = PARTIDOS.slice(0,16).filter(p=>{const s=real[p];return s&&s.e1!==null;}).length;
-  const playedOct = PARTIDOS.slice(16,24).filter(p=>{const s=real[p];return s&&s.e1!==null;}).length;
+  const played32 = PARTIDOS.slice(0,16).filter(p=>{const s=real[p];return s&&s.g1!=null&&s.g2!=null;}).length;
+  const playedOct = PARTIDOS.slice(16,24).filter(p=>{const s=real[p];return s&&s.g1!=null&&s.g2!=null;}).length;
   let faseLabel = '⚽ Torneo no iniciado';
   if(playedGrupos>0 && playedGrupos<48) faseLabel='🔵 Fase de Grupos';
   if(playedGrupos>=48) faseLabel='🔵 Fase 32 en curso';
@@ -877,7 +880,7 @@ const COLORS=['#E63946','#457B9D','#2DC653','#F4A261','#A8DADC','#6A4C93','#FF6B
 
 function renderGrafico(){
   const real=getRealScores();
-  const played=PARTIDOS.filter(p=>{const s=real[p];return s&&s.e1!==null;});
+  const played=PARTIDOS.filter(p=>{const s=real[p];return s&&s.g1!=null&&s.g2!=null;});
   const el=document.getElementById('chart-ev');
   if(played.length===0){
     el.parentElement.innerHTML='<div style="text-align:center;padding:50px;color:var(--gris);font-size:14px">📊 El gráfico aparecerá cuando se juegue el primer partido.</div>';
@@ -943,7 +946,7 @@ function renderTrans(faseF){
   h+='<tr class="rrow"><td class="nm">⚽ Resultado real</td>';
   filtered.forEach(pnum=>{
     const r=real[pnum];
-    h+=`<td>${r&&r.e1!==null?`${r.e1}–${r.e2}`:'—'}</td>`;
+    h+=`<td>${r&&r.g1!=null&&r.g2!=null?`${r.g1}–${r.g2}`:'—'}</td>`;
   });
   h+='</tr>';
   BASE_DATA.participants.forEach(part=>{
@@ -956,7 +959,7 @@ function renderTrans(faseF){
       const fase=BASE_DATA.partido_phases[pnum];
       if(!pred||pred.e1===null){h+=`<td class="cpend">—</td>`;return;}
       const ps=`${pred.e1}–${pred.e2}`;
-      if(!r||r.e1===null){h+=`<td class="cpend">${ps}</td>`;return;}
+      if(!r||r.g1==null||r.g2==null){h+=`<td class="cpend">${ps}</td>`;return;}
       const res=calcMarcador(pred,r,fase);
       const cc={exact:'ce',winner:'cw',partial:'cp',miss:'cm'}[res.tipo]||'cpend';
       h+=`<td class="${cc}">${ps}</td>`;
@@ -1351,17 +1354,17 @@ function buildMarcadoresForm(){
     let cards='';
     fg.pnums.forEach(pnum=>{
       const r=real[pnum];
-      const e1=r&&r.e1!==null?r.e1:'';
-      const e2=r&&r.e2!==null?r.e2:'';
-      const played=r&&r.e1!==null;
+      const g1=r&&r.g1!=null?r.g1:'';
+      const g2=r&&r.g2!=null?r.g2:'';
+      const played=r&&r.g1!=null&&r.g2!=null;
       const lbl=BASE_DATA.partido_labels[pnum]||['?','?'];
       cards+=`<div class="mcard${played?' played':''}" id="mc-${pnum}">
         <div class="mcard-num">P#${pnum}</div>
         <div class="mcard-teams">${lbl[0]} vs ${lbl[1]}</div>
         <div class="score-row">
-          <input class="score-inp" type="number" min="0" max="20" id="e1-${pnum}" value="${e1}" placeholder="0">
+          <input class="score-inp" type="number" min="0" max="20" id="e1-${pnum}" value="${g1}" placeholder="0">
           <span class="score-sep">–</span>
-          <input class="score-inp" type="number" min="0" max="20" id="e2-${pnum}" value="${e2}" placeholder="0">
+          <input class="score-inp" type="number" min="0" max="20" id="e2-${pnum}" value="${g2}" placeholder="0">
           <button class="btn btn-success" style="padding:5px 10px;font-size:11px;margin-left:6px" onclick="saveOne('${pnum}')">OK</button>
           ${played?'<span class="score-saved">✓</span>':''}
         </div>
@@ -1378,7 +1381,10 @@ function saveOne(pnum){
   const e2v=document.getElementById('e2-'+pnum).value;
   if(e1v===''||e2v==='') return;
   const real=getRealScores();
-  real[pnum]={e1:parseInt(e1v), e2:parseInt(e2v)};
+  // Preserve existing team names (e1/e2), only update scores (g1/g2)
+  const existing = real[pnum] || {};
+  real[pnum]={e1: existing.e1!==undefined?existing.e1:null, e2: existing.e2!==undefined?existing.e2:null,
+              g1:parseInt(e1v), g2:parseInt(e2v)};
   saveRealScores(real);
   const card=document.getElementById('mc-'+pnum);
   if(card){
@@ -1518,17 +1524,17 @@ function getAllGoles(){
   let total = 0;
   // Fase de grupos
   getGruposData().forEach(p => { if(p.e1!=null&&p.e2!=null) total += p.e1 + p.e2; });
-  // Fase 32 en adelante
+  // Fase 32 en adelante — usa g1/g2 (marcador), e1/e2 son nombres de equipo
   PARTIDOS.forEach(pnum => {
     const r = real[pnum];
-    if(r&&r.e1!==null) total += r.e1 + r.e2;
+    if(r && r.g1!=null && r.g2!=null) total += r.g1 + r.g2;
   });
   return total;
 }
 
 function getPartidosJugadosTotal(){
   const real = getRealScores();
-  const f32plus = PARTIDOS.filter(p=>{const s=real[p];return s&&s.e1!==null;}).length;
+  const f32plus = PARTIDOS.filter(p=>{const s=real[p];return s && s.g1!=null && s.g2!=null;}).length;
   return getGruposData().filter(p=>p.e1!=null).length + f32plus;
 }
 
@@ -1560,9 +1566,9 @@ function renderStatsBar(){
   // Colombia en F32+
   ['83'].forEach(pnum=>{
     const r=real[pnum];
-    if(r&&r.e1!==null){
+    if(r&&r.g1!=null&&r.g2!=null){
       // Colombia is e1 in P83
-      colFav+=r.e1; colCon+=r.e2;
+      colFav+=r.g1; colCon+=r.g2;
     }
   });
 
@@ -1653,9 +1659,9 @@ function renderResultados(){
   });
   PARTIDOS.forEach(pnum=>{
     const r=real[pnum];
-    if(r&&r.e1!==null){
+    if(r&&r.g1!=null&&r.g2!=null){
       const lbl=BASE_DATA.partido_labels[pnum]||['?','?'];
-      jugados.push({num:`P#${pnum}`,eq1:lbl[0],eq2:lbl[1],e1:r.e1,e2:r.e2,tipo:'fase'});
+      jugados.push({num:`P#${pnum}`,eq1:lbl[0],eq2:lbl[1],e1:r.g1,e2:r.g2,tipo:'fase'});
     }
   });
   const ultimos5 = jugados.slice(-5).reverse();
@@ -1667,7 +1673,7 @@ function renderResultados(){
   });
   PARTIDOS.forEach(pnum=>{
     const r=real[pnum];
-    if(!r||r.e1===null){
+    if(!r||r.g1==null||r.g2==null){
       const lbl=BASE_DATA.partido_labels[pnum]||['?','?'];
       pendientes.push({num:`P#${pnum}`,eq1:lbl[0],eq2:lbl[1]});
     }
