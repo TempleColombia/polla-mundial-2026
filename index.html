@@ -572,11 +572,12 @@ function calcMarcador(pred, real, fase) {
   if (!real || real.g1 == null || real.g2 == null) return {pts:0, tipo:'pending'};
   if (!pred || pred.e1 === null || pred.e2 === null) return {pts:0, tipo:'miss'};
   const pp = PTS[fase];
-  const r1 = real.g1, r2 = real.g2;
-  if (pred.e1 === r1 && pred.e2 === r2) return {pts:pp.e, tipo:'exact'};
+  const r1 = Number(real.g1), r2 = Number(real.g2);
+  const p1 = Number(pred.e1), p2 = Number(pred.e2);
+  if (p1 === r1 && p2 === r2) return {pts:pp.e, tipo:'exact'};
   const rw = r1 > r2 ? 1 : r1 < r2 ? 2 : 0;
-  const pw = pred.e1 > pred.e2 ? 1 : pred.e1 < pred.e2 ? 2 : 0;
-  const partial = pred.e1 === r1 || pred.e2 === r2;
+  const pw = p1 > p2 ? 1 : p1 < p2 ? 2 : 0;
+  const partial = p1 === r1 || p2 === r2;
   if (rw === pw) return {pts: pp.g + (partial ? pp.p : 0), tipo: partial ? 'winner+partial' : 'winner'};
   if (partial) return {pts:pp.p, tipo:'partial'};
   return {pts:0, tipo:'miss'};
