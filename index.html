@@ -1945,26 +1945,11 @@ function saveGrupoPartido(id, eq1, eq2, grupo){
 // Auto-limpiar extras obsoletos del localStorage:
 // Si BASE_DATA tiene un valor real y localStorage tiene null, eliminar del localStorage
 // para que BASE_DATA tome el control. Se ejecuta en cada carga de página.
-// Limpiar scores obsoletos del localStorage: si BASE_DATA tiene g1/g2 reales,
-// eliminar la entrada del localStorage para que BASE_DATA tome el control con tipos correctos
-(function syncScoresFromBase(){
+// BASE_DATA es la única fuente de verdad para scores — limpiar localStorage completamente
+(function clearStaleScores(){
   try {
-    const base = BASE_DATA.real_scores || {};
-    const local = JSON.parse(localStorage.getItem('polla_lemaitre_2026_scores') || '{}');
-    let changed = false;
-    for (const k in base) {
-      if (base[k] && base[k].g1 != null && base[k].g2 != null) {
-        if (local[k]) {
-          // Always prefer BASE_DATA for type safety — remove stale local entry
-          delete local[k];
-          changed = true;
-        }
-      }
-    }
-    if (changed) {
-      localStorage.setItem('polla_lemaitre_2026_scores', JSON.stringify(local));
-      console.log('[Polla] Scores sincronizados desde BASE_DATA.');
-    }
+    localStorage.removeItem('polla_lemaitre_2026_scores');
+    console.log('[Polla] localStorage scores limpiado — BASE_DATA es la fuente de verdad.');
   } catch(e){}
 })();
 
