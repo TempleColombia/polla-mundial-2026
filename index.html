@@ -118,7 +118,7 @@ table.pos tr:hover td{background:var(--bg);cursor:pointer}
 .ttbl tr.rrow td{background:#EEF2FF;font-weight:700}
 .ce{background:#D1FAE5!important;color:#065F46;font-weight:700}
 .cw{background:#FEF9C3!important;color:#92400E;font-weight:600}
-.cp{background:#FFEDD5!important;color:#9A3412}
+.cp{background:#FED7AA!important;color:#9A3412;font-weight:600}
 .cm{background:#FEE2E2!important;color:#991B1B}
 .cpend{color:#9CA3AF}
 
@@ -360,7 +360,7 @@ canvas{max-height:400px}
       <div class="ley">
         <div class="li"><div class="ld" style="background:#D1FAE5"></div>Marcador exacto</div>
         <div class="li"><div class="ld" style="background:#FEF9C3"></div>Ganador correcto</div>
-        <div class="li"><div class="ld" style="background:#FFEDD5"></div>Marcador parcial</div>
+        <div class="li"><div class="ld" style="background:#FED7AA"></div>Marcador parcial</div>
         <div class="li"><div class="ld" style="background:#FEE2E2"></div>Fallo</div>
         <div class="li"><div class="ld" style="background:#F3F4F6"></div>Pendiente</div>
       </div>
@@ -992,7 +992,7 @@ function renderTrans(faseF){
       const ps=`${pred.e1}–${pred.e2}`;
       if(!r||r.g1==null||r.g2==null){h+=`<td class="cpend">${ps}</td>`;return;}
       const res=calcMarcador(pred,r,fase);
-      const cc={exact:'ce',winner:'cw',partial:'cp',miss:'cm'}[res.tipo]||'cpend';
+      const cc={'exact':'ce','winner':'cw','winner+partial':'cw','partial':'cp','miss':'cm'}[res.tipo]||'cpend';
       h+=`<td class="${cc}">${ps}</td>`;
     });
     h+='</tr>';
