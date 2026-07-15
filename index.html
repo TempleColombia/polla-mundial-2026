@@ -1090,11 +1090,13 @@ function renderEquipos(faseF){
   });
   h += '</tr></thead><tbody>';
 
-  // Real equipos row
+  // Real equipos row — only show if match has been played (g1/g2 not null)
   h += '<tr class="rrow"><td class="nm">✅ Resultado real</td>';
   filtered.forEach(pnum => {
     const re = realEq[pnum] || {};
-    const val = re.e1 ? `${re.e1}<br>${re.e2}` : '—';
+    const rs = getRealScores()[pnum] || {};
+    const played = rs.g1 != null && rs.g2 != null;
+    const val = (re.e1 && played) ? `${re.e1}<br>${re.e2}` : '—';
     h += `<td style="line-height:1.6;font-size:11px">${val}</td>`;
   });
   h += '</tr>';
