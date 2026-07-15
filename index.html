@@ -1117,7 +1117,10 @@ function renderEquipos(faseF){
 
       const val = `${e1||'?'}<br>${e2||'?'}`;
 
-      if (!re.e1) {
+      const rs = getRealScores()[pnum] || {};
+      const played = rs.g1 != null && rs.g2 != null;
+
+      if (!re.e1 || !played) {
         // Pending — no real result yet
         h += `<td class="cpend" style="line-height:1.6;font-size:11px">${val}</td>`;
         return;
