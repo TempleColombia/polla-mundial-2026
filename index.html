@@ -987,7 +987,9 @@ function renderTrans(faseF){
   };
   filtered.forEach(pnum=>{
     const re = (BASE_DATA.real_equipos||{})[pnum]||{};
-    const sub = (re.e1 && re.e2) ? (re.e1+' vs '+re.e2) : (TRANS_SLOTS[pnum]||'?');
+    const rs2 = (getRealScores()[pnum])||{};
+    const playedH = rs2.g1 != null && rs2.g2 != null;
+    const sub = (re.e1 && re.e2 && playedH) ? (re.e1+' vs '+re.e2) : (TRANS_SLOTS[pnum]||partido_labels[pnum]||'?');
     h+=`<th>P#${pnum}<br><span style="font-weight:400;font-size:9px">${sub}</span></th>`;
   });
   h+='</tr></thead><tbody>';
@@ -1081,9 +1083,11 @@ function renderEquipos(faseF){
   filtered.forEach(pnum => {
     const slots = SLOT_DESC[pnum] || ['?','?'];
     const re2 = (BASE_DATA.real_equipos||{})[pnum]||{};
-    // Show real teams if known, otherwise show slot description
-    const topLabel = re2.e1 ? re2.e1 : slots[0];
-    const botLabel = re2.e2 ? re2.e2 : slots[1];
+    const rs2 = getRealScores()[pnum] || {};
+    const playedH = rs2.g1 != null && rs2.g2 != null;
+    // Show real teams only if match has been played, otherwise show slot description
+    const topLabel = (re2.e1 && playedH) ? re2.e1 : slots[0];
+    const botLabel = (re2.e2 && playedH) ? re2.e2 : slots[1];
     h += `<th style="min-width:110px">P#${pnum}<br>
       <span style="font-size:8px;font-weight:400;opacity:.8">${topLabel}</span><br>
       <span style="font-size:8px;font-weight:400;opacity:.6">vs ${botLabel}</span></th>`;
