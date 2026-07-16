@@ -698,7 +698,7 @@ function calcClasifScore(numStr) {
     else if (p1===r2 || p2===r1) pts += 12;
   }
 
-  // Cuartos partidos: 97-100 → 30 ambos equipos, 20 un equipo, 0 ninguno
+  // Cuartos partidos: 97-100 → 30 posición correcta, 20 posición incorrecta (por equipo)
   for (let pid = 97; pid <= 100; pid++) {
     const pidStr = pid.toString();
     const real = realEq[pidStr];
@@ -707,13 +707,15 @@ function calcClasifScore(numStr) {
     if (!pred) continue;
     const p1 = normEquipo(pred.e1), p2 = normEquipo(pred.e2);
     const r1 = normEquipo(real.e1), r2 = normEquipo(real.e2);
-    const realSet = new Set([r1, r2]);
-    const matches = [p1, p2].filter(x => realSet.has(x)).length;
-    if (matches === 2) pts += 30;
-    else if (matches === 1) pts += 20;
+    // e1
+    if (p1 === r1) pts += 30;
+    else if (p1 === r2) pts += 20;
+    // e2
+    if (p2 === r2) pts += 30;
+    else if (p2 === r1) pts += 20;
   }
 
-  // Semifinal partidos: 101-102 → 40 en orden, 30 invertido, 0 no aparece (por equipo)
+  // Semifinal partidos: 101-102 → 30 posición correcta, 20 posición incorrecta (por equipo)
   for (let pid = 101; pid <= 102; pid++) {
     const pidStr = pid.toString();
     const real = realEq[pidStr];
@@ -723,11 +725,11 @@ function calcClasifScore(numStr) {
     const p1 = normEquipo(pred.e1), p2 = normEquipo(pred.e2);
     const r1 = normEquipo(real.e1), r2 = normEquipo(real.e2);
     // e1
-    if (p1 === r1) pts += 40;
-    else if (p1 === r2) pts += 30;
+    if (p1 === r1) pts += 30;
+    else if (p1 === r2) pts += 20;
     // e2
-    if (p2 === r2) pts += 40;
-    else if (p2 === r1) pts += 30;
+    if (p2 === r2) pts += 30;
+    else if (p2 === r1) pts += 20;
   }
 
   // Semifinal ganadores y perdedores: 103-104
