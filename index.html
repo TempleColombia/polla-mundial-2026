@@ -751,7 +751,9 @@ function calcClasifScore(numStr) {
   }
 
   return pts;
-} {
+}
+
+function calcAllScores() {
   const real = getRealScores();
   const res = {};
   BASE_DATA.participants.forEach(p => {
