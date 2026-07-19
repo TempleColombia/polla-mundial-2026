@@ -643,7 +643,7 @@ function calcExtrasScore(n) {
   if (matchVal(px.menos_goles_contra, realX.real_menos_goles_contra)) pts += 30;
   // Primer/último gol equipo
   if (matchVal(px.primer_gol_equipo, realX.real_primer_gol_equipo)) pts += 20;
-  if (matchVal(px.ultimo_gol_equipo, realX.real_ultimo_gol_equipo)) pts += 15;
+  if (matchVal(px.ultimo_gol_equipo, realX.real_ultimo_gol_equipo)) pts += 20;
   // Continentes
   if (px.continente_camp) {
     const cc = px.continente_camp.toString().toLowerCase().replace(/[éèê]/g,'e').trim();
