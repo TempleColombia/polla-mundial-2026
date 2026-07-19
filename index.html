@@ -1645,13 +1645,12 @@ function renderStatsBar(){
     if(p.eq1==='Colombia'){colFav+=p.e1;colCon+=p.e2;}
     else{colFav+=p.e2;colCon+=p.e1;}
   });
-  // Colombia en F32+
-  ['83'].forEach(pnum=>{
-    const r=real[pnum];
-    if(r&&r.g1!=null&&r.g2!=null){
-      // Colombia is e1 in P83
-      colFav+=r.g1; colCon+=r.g2;
-    }
+  // Colombia en F32+ — buscar dinámicamente todos los partidos donde Colombia jugó
+  PARTIDOS.forEach(pnum => {
+    const r = real[pnum];
+    if (!r || r.g1==null || r.g2==null) return;
+    if (r.e1 === 'Colombia') { colFav += r.g1; colCon += r.g2; }
+    else if (r.e2 === 'Colombia') { colFav += r.g2; colCon += r.g1; }
   });
 
   const faltanPartidos = 104 - jugados;
