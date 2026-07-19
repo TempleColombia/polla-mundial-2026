@@ -617,11 +617,9 @@ function calcExtrasScore(n) {
   // Generales
   if (matchNum(px.total_goles, realX.real_total_goles)) pts += 120;
   // Goleador: aceptar cualquier variante de Mbappe
-  if (px.goleador && realX.real_goleador) {
-    const pg = px.goleador.toString().toLowerCase().replace(/[éè]/g,'e');
-    const rg = realX.real_goleador.toString().toLowerCase().replace(/[éè]/g,'e');
-    if (pg.includes('mbappe') && rg.includes('mbappe')) pts += 50;
-    else if (pg === rg) pts += 50;
+  if (px.goleador) {
+    const pg = px.goleador.toString().toLowerCase().replace(/[éèê]/g,'e').replace(/\s+/g,' ').trim();
+    if (pg.includes('mbappe') || pg === 'kylian') pts += 50;
   }
   if (matchNum(px.goles_goleador, realX.real_goles_goleador)) pts += 50;
   // Hitos goles (40 c/u)
@@ -630,11 +628,10 @@ function calcExtrasScore(n) {
   });
   // Equipos stats (30 c/u)
   if (matchVal(px.ultimo_lugar, realX.real_ultimo_lugar)) pts += 30;
-  // mas_goles_fav: Francia O Inglaterra ambos válidos
-  const realMGF = realX.real_mas_goles_fav;
-  if (realMGF && px.mas_goles_fav) {
-    const p = normStr(px.mas_goles_fav);
-    if (p === normStr('Francia') || p === normStr('Inglaterra')) pts += 30;
+  // mas_goles_fav: Francia O Inglaterra ambos válidos (empate)
+  if (px.mas_goles_fav) {
+    const mgf = px.mas_goles_fav.toString().toLowerCase().trim();
+    if (mgf === 'francia' || mgf === 'inglaterra') pts += 30;
   }
   if (matchVal(px.mas_goles_contra, realX.real_mas_goles_contra)) pts += 30;
   if (matchVal(px.menos_goles_fav, realX.real_menos_goles_fav)) pts += 30;
@@ -643,8 +640,14 @@ function calcExtrasScore(n) {
   if (matchVal(px.primer_gol_equipo, realX.real_primer_gol_equipo)) pts += 20;
   if (matchVal(px.ultimo_gol_equipo, realX.real_ultimo_gol_equipo)) pts += 15;
   // Continentes
-  if (matchVal(px.continente_camp, realX.real_continente_camp)) pts += 20;
-  if (matchVal(px.continente_subcamp, realX.real_continente_subcamp)) pts += 20;
+  if (px.continente_camp) {
+    const cc = px.continente_camp.toString().toLowerCase().replace(/[éèê]/g,'e').trim();
+    if (cc === 'europa' || cc === 'eur' || cc === 'europe') pts += 20;
+  }
+  if (px.continente_subcamp) {
+    const cs = px.continente_subcamp.toString().toLowerCase().replace(/[éèê]/g,'e').trim();
+    if (cs === 'america' || cs === 'ame' || cs === 'sur america' || cs === 'sudamerica' || cs === 'sur america') pts += 20;
+  }
 
   return pts;
 }
