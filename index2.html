@@ -647,11 +647,11 @@ function calcExtrasScore(n) {
   // Continentes
   if (px.continente_camp) {
     const cc = px.continente_camp.toString().toLowerCase().replace(/[éèê]/g,'e').trim();
-    if (cc === 'europa' || cc === 'eur' || cc === 'europe') pts += 20;
+    if (cc === 'europa' || cc === 'eur' || cc === 'europe' || cc === 'europa (uefa)') pts += 20;
   }
   if (px.continente_subcamp) {
     const cs = px.continente_subcamp.toString().toLowerCase().replace(/[éèê]/g,'e').trim();
-    if (cs === 'america' || cs === 'ame' || cs === 'sur america' || cs === 'sudamerica' || cs === 'sur america') pts += 20;
+    if (cs === 'america' || cs === 'ame' || cs === 'sur america' || cs === 'sudamerica' || cs === 'sur america' || cs === 'sudamérica' || cs === 'europa (uefa)'.replace('europa','')) pts += 20;
   }
 
   return pts;
