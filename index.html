@@ -616,7 +616,13 @@ function calcExtrasScore(n) {
 
   // Generales
   if (matchNum(px.total_goles, realX.real_total_goles)) pts += 120;
-  if (matchVal(px.goleador, realX.real_goleador)) pts += 50;
+  // Goleador: aceptar cualquier variante de Mbappe
+  if (px.goleador && realX.real_goleador) {
+    const pg = px.goleador.toString().toLowerCase().replace(/[éè]/g,'e');
+    const rg = realX.real_goleador.toString().toLowerCase().replace(/[éè]/g,'e');
+    if (pg.includes('mbappe') && rg.includes('mbappe')) pts += 50;
+    else if (pg === rg) pts += 50;
+  }
   if (matchNum(px.goles_goleador, realX.real_goles_goleador)) pts += 50;
   // Hitos goles (40 c/u)
   ['25','50','75','100','125','150'].forEach(h => {
